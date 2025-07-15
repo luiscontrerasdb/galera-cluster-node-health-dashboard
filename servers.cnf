@@ -1,0 +1,26 @@
+[node1]
+host=172.16.242.131
+db_user=root
+db_password=root
+ssh_user=root
+ssh_password=laboratorio
+datadir = /var/lib/mysql
+monitor_db = nation,testGalera
+
+[node2]
+host=172.16.242.132
+db_user=root
+db_password=root
+ssh_user=root
+ssh_password=laboratorio
+datadir = /var/lib/mysql
+monitor_db = nation,testGalera
+
+[node3]
+host=172.16.242.133
+db_user=root
+db_password=root
+ssh_user=root
+ssh_password=laboratorio
+datadir = /var/lib/mysql
+monitor_db = nation,testGalera
