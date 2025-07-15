@@ -38,6 +38,8 @@ How it looks with a Node down:
 
 <img width="1898" height="851" alt="image" src="https://github.com/user-attachments/assets/5056d633-f64d-466d-b1f3-ca88b967b6ce" />
 
+I will be adding more features soon!
+
 
 
 
