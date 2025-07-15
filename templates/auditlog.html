@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Log - Galera Cluster Dashboard</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #f3f3f3;}
+      .log-table { background: #fff; margin: 40px auto 24px auto; border-collapse: collapse; min-width: 780px; }
+      th, td { border: 1px solid #ccc; padding: 8px 16px; text-align: left;}
+      th { background: #f9f9f9;}
+      tr:nth-child(even) { background: #f7fafe;}
+      h2 { text-align:center; color:#194675; margin-top: 28px;}
+      .header-zone {position:fixed; top:12px; right:24px; text-align:right;}
+      .footer { text-align:center;color:#8aa;font-size:13px;margin-top:30px; }
+      .back-link { color:#194675; font-size:16px; font-weight:bold; margin-left:16px;}
+      .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="header-zone">
+        <a class="back-link" href="{{ url_for('index') }}">&larr; Dashboard</a>
+    </div>
+    <h2>Audit Log</h2>
+    <table class="log-table">
+      <tr>
+        <th>Timestamp</th>
+        <th>User</th>
+        <th>Action</th>
+        <th>Details</th>
+      </tr>
+      {% for user, act, det, ts in logs %}
+      <tr>
+        <td>{{ ts }}</td>
+        <td>{{ user }}</td>
+        <td>{{ act }}</td>
+        <td>{{ det }}</td>
+      </tr>
+      {% endfor %}
+      {% if not logs %}
+      <tr>
+        <td colspan="4" style="color:#aaa;text-align:center;">No audit records.</td>
+      </tr>
+      {% endif %}
+    </table>
+    <div class="footer">
+        &copy; {{ now.year }} Powered by MariaDB &amp; Galera Cluster.
+    </div>
+</body>
+</html>
+

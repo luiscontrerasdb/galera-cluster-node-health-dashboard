@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register - Galera Cluster Dashboard</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #f3f3f3;}
+      .register-form { background: #fff; max-width: 380px; margin: 50px auto; padding: 30px 36px 16px 36px; border-radius: 10px; box-shadow: 0 6px 24px #0002;}
+      h2 { text-align: center; color: #194675; }
+      .input-row { margin-bottom: 16px; }
+      label { display: block; margin-bottom: 4px; color: #222; }
+      input[type="text"], input[type="email"], input[type="password"] {
+          width: 100%; padding: 7px 9px; font-size: 15px; border: 1px solid #bbb; border-radius: 4px;
+      }
+      button { padding: 7px 18px; background: #194675; color: #fff; border: none; border-radius: 4px; font-size: 15px; cursor: pointer;}
+      button:hover { background: #14335e;}
+      .footer { text-align:center;color:#8aa;font-size:13px;margin-top:16px; }
+      .msg-error { color: #e44; margin: 10px 0 0 0; text-align: center; }
+      .msg-success { color: #090; margin: 10px 0 0 0; text-align: center; }
+      .logo-box { text-align:center; margin-bottom:16px;}
+      .galera-logo { width:62px; margin-bottom: 4px;}
+      .login-link { text-align:center; margin-top:14px; }
+      .login-link a { color: #194675; font-weight: bold; text-decoration: none; }
+      .login-link a:hover { text-decoration: underline; }
+    </style>
+    <script>
+      function validateForm() {
+        const pw1 = document.getElementById("password").value;
+        const pw2 = document.getElementById("password2").value;
+        if (pw1 !== pw2) {
+          document.getElementById("pwmsg").textContent = "Passwords do not match.";
+          return false;
+        }
+        document.getElementById("pwmsg").textContent = "";
+        return true;
+      }
+    </script>
+</head>
+<body>
+  <form class="register-form" method="POST" onsubmit="return validateForm();">
+    <div class="logo-box">
+      <img class="galera-logo" src="{{ url_for('static', filename='Galera.png') }}" alt="Galera Cluster Logo" />
+    </div>
+    <h2>Create your account</h2>
+    <div class="input-row">
+      <label for="first_name">First Name</label>
+      <input required type="text" id="first_name" name="first_name" value="{{ request.form.first_name or '' }}">
+    </div>
+    <div class="input-row">
+      <label for="last_name">Last Name</label>
+      <input required type="text" id="last_name" name="last_name" value="{{ request.form.last_name or '' }}">
+    </div>
+    <div class="input-row">
+      <label for="email">Email</label>
+      <input required type="email" id="email" name="email" value="{{ request.form.email or '' }}">
+    </div>
+    <div class="input-row">
+      <label for="username">Username</label>
+      <input required type="text" id="username" name="username" value="{{ request.form.username or '' }}">
+    </div>
+    <div class="input-row">
+      <label for="password">Password</label>
+      <input required type="password" id="password" name="password" minlength="4">
+    </div>
+    <div class="input-row">
+      <label for="password2">Confirm Password</label>
+      <input required type="password" id="password2" name="password2" minlength="4">
+      <div id="pwmsg" class="msg-error"></div>
+    </div>
+    <div style="text-align:center;">
+      <button type="submit">Register</button>
+    </div>
+    {% if error %}
+      <div class="msg-error">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+      <div class="msg-success">{{ success }}</div>
+      <div class="login-link">
+        You can now <a href="{{ url_for('login') }}">login here</a>.
+      </div>
+    {% endif %}
+  </form>
+  <div class="footer">
+      &copy; {{ now.year }} Powered by MariaDB &amp; Galera Cluster.
+  </div>
+</body>
+</html>
+

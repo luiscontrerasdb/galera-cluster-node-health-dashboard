@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Galera Cluster Node Health Dashboard</title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400" rel="stylesheet">
+    <style>
+        body { font-family: 'Montserrat', Arial, sans-serif; background: #fafbfc; margin:0; padding:0;}
+        #header { display: flex; align-items: center; justify-content: space-between; padding: 1em 2em 0.2em 2em;}
+        #header img { height: 64px;}
+        #header h1 { color: #1e4877; font-size: 2.2em; margin:0 0 0 0.5em;}
+        #user { margin-right:1.5em; font-size: 1.1em;}
+        #user strong { font-weight: 700; }
+        #navbar { display: flex; gap: 0.5em; align-items: center;}
+        #navbar a, #navbar button { font-size: 1.05em; border: none; background: none; cursor: pointer; margin: 0 0.1em;}
+        #navbar .mainbtn { background: #215886; color: #fff; font-weight:700; border-radius: 2em; padding:0.5em 1.2em;}
+        #navbar a { color: #4e2ea1; text-decoration: underline;}
+        #navbar select { margin-left:1.2em;}
+        #dashboard { margin: 0 auto; max-width: 1600px; }
+        #graph { text-align: center; margin-top: 1em; margin-bottom: 2em; }
+        .link-animated {
+            animation: march 1.3s linear infinite;
+        }
+        .blink {
+            animation: blink 0.85s linear infinite, march 1.3s linear infinite;
+        }
+        @keyframes march {
+          to { stroke-dashoffset: -100; }
+        }
+        @keyframes blink {
+          50% { opacity: 0.2; }
+        }
+        table { border-collapse: collapse; width: 90%; margin: 0 auto 2em auto; background: #fff;}
+        th, td { border: 1px solid #c6d0e2; padding: 0.4em 0.8em; text-align: center; }
+        th { background: #f4f8fa; color: #205280; font-size:1.1em;}
+        td { color: #205280; font-size: 1.05em;}
+        .ok { color: #1bb928; font-weight:700;}
+        .problem { color: #e60000; font-weight:700;}
+        .noborder { border: none;}
+        .noissues { color:#1bb928; font-weight:700;}
+        .fixbtn { background: #f7f7f7; color:#114a88; border-radius:0.7em; border:1px solid #bcd; padding:0.2em 0.9em; cursor:pointer; }
+        .fixbtn:active { background: #d8f8e3;}
+        .dashboardbtn { background:#eaf3fc; color: #1d3261; font-weight:700; border-radius: 1em; border:1px solid #b7d4f7; padding:0.2em 1.0em; margin-bottom:0.2em;}
+        .dashboardbtn:active { background: #bee7f4;}
+        .tr-problem td { background: #ffeaea !important;}
+        .tr-ok td { background: #f6fff6;}
+        .metrics-bar { height: 13px; width: 70px; background: #e2eefa; border-radius:8px; display:inline-block; margin-left:0.6em; margin-bottom:-3px;}
+        .metrics-fill { background: #2ac569; height:13px; border-radius:8px; display:inline-block;}
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div style="display: flex; align-items:center;">
+            <img src="/static/Galera.png" alt="Galera Logo">
+            <h1>Galera Cluster Node Health Dashboard</h1>
+        </div>
+        <div id="user">
+            {% if user %}
+                <strong>{{ user['first_name'] }} {{ user['last_name'] }}</strong>
+                ({{ user['username'] }}, {{ user['role'] }})<br>
+                {{ user['email'] }}
+            {% endif %}
+        </div>
+        <div id="navbar">
+            {% if user %}
+            <a href="{{ url_for('logout') }}">Logout</a>
+            <a href="{{ url_for('auditlog_view') }}" class="mainbtn">Audit Log</a>
+            <a href="{{ url_for('nodeevents') }}">View Node Event Log</a> 
+            {% endif %}
+            <form id="refreshForm" style="display:inline;">
+                <label for="refreshSelect">Refresh:</label>
+                <select id="refreshSelect" name="refresh">
+                    <option value="5s">5s</option>
+                    <option value="10s" selected>10s</option>
+                    <option value="30s">30s</option>
+                    <option value="60s">60s</option>
+                </select>
+            </form>
+        </div>
+    </div>
+    <div id="dashboard">
+        <div id="graph">
+            <svg id="galera-svg" width="600" height="360"></svg>
+        </div>
+        <table id="nodetable">
+            <thead>
+                <tr>
+                    <th>Node</th>
+                    <th>IP</th>
+                    <th>Status</th>
+                    <th>Galera State</th>
+                    <th>wsrep_on</th>
+                    <th>DB Users</th>
+                    <th>DB Sizes</th>
+                    <th>Memory</th>
+                    <th>CPU</th>
+                    <th>Disk</th>
+                    <th>Problems</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="12" class="noborder" id="loadingrow">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+<script>
+const svg = document.getElementById("galera-svg");
+const nodePos = [
+    {x: 300, y: 80},
+    {x: 130, y: 260},
+    {x: 470, y: 260}
+];
+let refreshMs = 10000;
+const colorOK = "#11c400";
+const colorProblem = "#ff3535";
+const colorStrokeOK = "#18497d";
+const colorStrokeProblem = "#e74848";
+const colorLineOK = "#38c947";
+const colorLineProblem = "#e78d25";
+
+function drawGraph(nodes) {
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    const links = [[0,1],[1,2],[2,0]];
+    links.forEach(([a,b]) => {
+        const n1 = nodes[a] || {};
+        const n2 = nodes[b] || {};
+        const isOK = n1.status === "OK" && n2.status === "OK";
+        const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+        line.setAttribute("x1", nodePos[a].x);
+        line.setAttribute("y1", nodePos[a].y);
+        line.setAttribute("x2", nodePos[b].x);
+        line.setAttribute("y2", nodePos[b].y);
+        line.setAttribute("stroke", isOK ? colorLineOK : colorLineProblem);
+        line.setAttribute("stroke-width", "14");
+        line.setAttribute("stroke-dasharray", "32 18");
+        line.setAttribute("class", isOK ? "link-animated" : "link-animated blink");
+        svg.appendChild(line);
+    });
+    nodes.forEach((n, i) => {
+        const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+        const circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
+        circle.setAttribute("cx", nodePos[i].x);
+        circle.setAttribute("cy", nodePos[i].y);
+        circle.setAttribute("r", 60);
+        circle.setAttribute("fill", n.status === "OK" ? colorOK : colorProblem);
+        circle.setAttribute("stroke", n.status === "OK" ? colorStrokeOK : colorStrokeProblem);
+        circle.setAttribute("stroke-width", "11");
+        g.appendChild(circle);
+        const label = document.createElementNS("http://www.w3.org/2000/svg","text");
+        label.setAttribute("x", nodePos[i].x);
+        label.setAttribute("y", nodePos[i].y + 12);
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("font-size", "2.6em");
+        label.setAttribute("font-weight", "bold");
+        label.setAttribute("fill", "#fff");
+        label.textContent = n.node_label || ("N"+(i+1));
+        g.appendChild(label);
+        svg.appendChild(g);
+    });
+}
+
+function memoryBar(mem) {
+    let percent = 0;
+    let used = "-";
+    if (mem && mem.indexOf("(") >= 0) {
+        used = mem.split("(")[0].trim();
+        percent = parseFloat(mem.split("(")[1]);
+    }
+    let fillw = percent ? Math.round(70*percent/100) : 1;
+    return `<span>${used}</span><span class="metrics-bar"><span class="metrics-fill" style="width:${fillw}px"></span></span>`;
+}
+function cpuBar(cpu) {
+    let percent = cpu ? parseFloat(cpu) : 0;
+    let fillw = percent ? Math.round(70*percent/100) : 1;
+    return `<span>${cpu||"-"}</span><span class="metrics-bar"><span class="metrics-fill" style="width:${fillw}px"></span></span>`;
+}
+function updateTable(nodes) {
+    let tb = document.querySelector("#nodetable tbody");
+    tb.innerHTML = "";
+    if (!nodes.length) {
+        tb.innerHTML = `<tr><td colspan="12">No nodes detected</td></tr>`;
+        return;
+    }
+    nodes.forEach((n, i) => {
+        let tr = document.createElement("tr");
+        tr.className = n.status === "OK" ? "tr-ok" : "tr-problem";
+        let actionHTML = `<a href="#" class="dashboardbtn" onclick="alert('Dashboard for ${n.node_label||('N'+(i+1))} not implemented!')">Dashboard</a>`;
+        // Only show Fix button if status is Problem
+        if (n.status !== "OK") {
+            actionHTML = `<button class="fixbtn" onclick="fixNode('${n.node_label||('N'+(i+1))}', this)">Fix</button> ${actionHTML}`;
+        }
+        tr.innerHTML = `
+            <td><b>${n.node_label||("N"+(i+1))}</b></td>
+            <td>${n.ip||n.host||"-"}</td>
+            <td class="${n.status==='OK'?'ok':'problem'}">${n.status}</td>
+            <td>${n.galera_state||"-"}</td>
+            <td>${n.wsrep_on||"-"}</td>
+            <td>${n.db_users||"-"}</td>
+            <td style="white-space:pre-line">${n.db_sizes||"-"}</td>
+            <td>${memoryBar(n.memory)}</td>
+            <td>${cpuBar(n.cpu)}</td>
+            <td>${n.disk||"-"}</td>
+            <td class="${n.problems && n.problems.startsWith('No') ? 'noissues':'problem'}">${n.problems||"-"}</td>
+            <td>${actionHTML}</td>
+        `;
+        tb.appendChild(tr);
+    });
+}
+function fetchStatus() {
+    fetch("/status").then(x=>x.json()).then(nodes => {
+        drawGraph(nodes);
+        updateTable(nodes);
+    });
+}
+function fixNode(nodeid, btn) {
+    btn.disabled = true;
+    btn.innerText = "Fixing...";
+    fetch(`/node/${nodeid}/fix`, {method:"POST"})
+      .then(x=>x.json())
+      .then(resp => {
+        btn.innerText = resp.message || "Fixed!";
+        setTimeout(fetchStatus, 1500);
+      })
+      .catch(e => { btn.innerText="Error!"; });
+}
+document.addEventListener("DOMContentLoaded", () => {
+    let refreshSel = document.getElementById("refreshSelect");
+    let urlParams = new URLSearchParams(window.location.search);
+    let ref = urlParams.get("refresh");
+    if (ref) refreshSel.value = ref;
+    refreshMs = parseInt(refreshSel.value)*1000 || 10000;
+    refreshSel.addEventListener("change", function() {
+        let newval = refreshSel.value;
+        window.location = "?refresh="+newval;
+    });
+    fetchStatus();
+    setInterval(fetchStatus, refreshMs);
+});
+</script>
+</body>
+</html>
+

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Galera Node Events</title>
+    <style>
+        body { font-family: Montserrat, Arial, sans-serif; margin:2em; }
+        h2 { color: #1e4877;}
+        table { border-collapse: collapse; width:80%; margin:auto;}
+        th, td { border:1px solid #c6d0e2; padding:0.45em 0.9em;}
+        th { background:#f4f8fa;}
+        .ok { color:#1bb928;}
+        .down { color:#e60000;}
+    </style>
+</head>
+<body>
+    <h2>Galera Node Events</h2>
+    <table>
+        <tr>
+            <th>Node</th>
+            <th>IP</th>
+            <th>Down Time</th>
+            <th>Up Time</th>
+            <th>Downtime Duration</th>
+        </tr>
+        {% for ev in events %}
+        <tr>
+            <td>{{ ev.node_label or "-" }}</td>
+            <td>{{ ev.ip or "-" }}</td>
+            <td class="down">{{ ev.down_time or "-" }}</td>
+            <td class="ok">{{ ev.up_time or "-" }}</td>
+            <td>{{ ev.duration_str or "-" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No events registered yet.</td></tr>
+        {% endfor %}
+    </table>
+    <br>
+    <div style="text-align:center;"><a href="{{ url_for('index') }}">Back to Dashboard</a></div>
+</body>
+</html>
+
