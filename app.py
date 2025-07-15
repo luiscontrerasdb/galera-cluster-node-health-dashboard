@@ -97,13 +97,9 @@ def node_fix(nodeid):
 
 @app.route("/nodeevents")
 def nodeevents():
-    # Suponemos que tienes una función `get_node_events()` que retorna la lista de eventos.
-    # Cada evento debe tener: node_label, ip, down_time, up_time, duration_str
-    from galera_checklib import get_node_events  # Asegúrate de que exista esta función
+    from galera_checklib import get_node_events 
     events = get_node_events()
     return render_template("nodeevents.html", events=events)
-
-
 
 
 if __name__ == "__main__":
