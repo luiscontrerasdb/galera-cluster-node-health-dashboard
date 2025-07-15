@@ -1,5 +1,21 @@
 # Galera Cluster Node Health Dashboard
 
-This a project
+Scenario:
 
-<img width="1552" height="826" alt="image" src="https://github.com/user-attachments/assets/7bed5442-c534-45f5-a096-6364331434ef" />
+3 Nodes running MariaDB and Galera
+1 Node for running the application
+
+Files
+
+In the node for running the app you will have:
+
+- template folder: it contains html file
+- static folder: it contains image and css files
+
+This is how the application looks like:
+
+<img width="1552" height="826" alt="image" src="https://github.com/user-attachments/assets/30b072ad-2361-4efa-ae97-c5adc0aa6be0" />
+
+
+
+
