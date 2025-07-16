@@ -40,6 +40,9 @@ How it looks with a Node down:
 
 I will be adding more features soon!
 
+<img width="260" height="260" alt="image" src="https://github.com/user-attachments/assets/7d630bb3-b238-4d29-9b91-7a926d580ab9" />
+
+
 
 
 
